@@ -1,6 +1,8 @@
-import fs from 'fs';
+import { open } from './db.mjs';
 
-fs.readdirSync('.').forEach((x) => {
-  console.log(x);
-});
+const db = open();
+
+console.log(db.prepare('SELECT 42 "age"').get());
+
+db.close();
 

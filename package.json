@@ -14,5 +14,8 @@
     "sql-builder"
   ],
   "author": "Chris Davies <github@christophilus.com>",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "better-sqlite3": "7.6.2"
+  }
 }
