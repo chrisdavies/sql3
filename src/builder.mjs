@@ -46,6 +46,10 @@ function isFragmentArray(arr) {
  *    JSON.stringify(q.args) === JSON.stringify([userId]);
  */
 export function frag(strs, ...vals) {
+  if (!strs.raw) {
+    throw new Error(`SQL builders must be called as a template string.`);
+  }
+
   const query = [];
   const args = [];
 
