@@ -1,0 +1,18 @@
+{
+  "name": "sql3",
+  "version": "0.0.0",
+  "description": "A query builder, migrator, and optimizer built on top of better-sqlite3.",
+  "main": "src/index.mjs",
+  "scripts": {
+    "start": "node src/index.mjs",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "sqlite",
+    "sqlite3",
+    "better-sqlite3",
+    "sql-builder"
+  ],
+  "author": "Chris Davies <github@christophilus.com>",
+  "license": "ISC"
+}
