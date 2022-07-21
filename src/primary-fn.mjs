@@ -56,7 +56,10 @@ export function messagePump(runner) {
           id: msg.id,
           type: msg.type,
           ok: false,
-          payload,
+          payload: JSON.stringify({
+            message: payload.message,
+            stack: payload.stack,
+          }),
         });
       }
     };
@@ -108,7 +111,7 @@ export function messagePump(runner) {
           if (r.ok) {
             ok(r.payload);
           } else {
-            fail(r.payload);
+            fail(JSON.parse(r.payload));
           }
         };
         requestHandler(handleResponse, { type: msgType, payload });

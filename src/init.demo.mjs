@@ -32,9 +32,20 @@ async function runDemo() {
   const user = await sql.execGet`
     INSERT INTO users (email) VALUES (${email('you')}) RETURNING *
   `;
+  await sql.execTx([
+    sql`INSERT INTO users (email) VALUES (${email('tx1')})`,
+    sql`INSERT INTO users (email) VALUES (${email('tx2')})`,
+  ]);
 
   console.log(userId);
   console.log(user);
+
+  console.log(
+    sql.all`SELECT * FROM users WHERE email IN (${[
+      email('tx1'),
+      email('tx2'),
+    ]})`
+  );
 
   sql.close();
 }

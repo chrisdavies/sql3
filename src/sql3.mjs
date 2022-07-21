@@ -24,6 +24,13 @@ export function sql3(opts) {
     };
   };
 
+  const runTx = primary.mkfn((db, queries) => {
+    const rawDb = db.rawDb;
+    return rawDb.transaction(() => {
+      queries.forEach((q) => rawDb.prepare(q.query).run(...q.args));
+    })();
+  });
+
   const sql = frag;
 
   Object.assign(sql, {
@@ -59,6 +66,10 @@ export function sql3(opts) {
         return db.prepare(query).get(...args);
       })
     ),
+
+    execTx(queries) {
+      return runTx(db.name, queries);
+    },
   });
 
   return sql;
