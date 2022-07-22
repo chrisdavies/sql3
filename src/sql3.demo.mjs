@@ -2,7 +2,7 @@
  * This file contains demo usage of the sql3 module.
  */
 
-import { sql3 } from './init.mjs';
+import { sql3 } from './index.mjs';
 
 function runDemo() {
   const sql = sql3();

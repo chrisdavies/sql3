@@ -16,7 +16,7 @@ export function basic({ open }) {
       baseClose();
       delete connections[db.filename];
     };
-    db[db.filename] = db;
+    connections[db.filename] = db;
     return db;
   };
 

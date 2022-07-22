@@ -70,6 +70,9 @@ export function messagePump(runner) {
   }
 
   const requestHandler = (worker, msg) => {
+    if (!isSql3Msg(msg)) {
+      return;
+    }
     const id = nextId();
     const originalId = msg.id;
     msg.id = id;

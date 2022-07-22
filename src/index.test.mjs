@@ -2,7 +2,8 @@
  * This file contains demo usage of the sql3 module.
  */
 
-import { sql3 } from './init.mjs';
+import * as assert from 'assert';
+import { sql3 } from './index.mjs';
 import fs from 'fs';
 import cluster from 'cluster';
 import { mkPrimaryTxFn } from './sql3.mjs';
@@ -23,9 +24,7 @@ const mkdir = (dir) => {
 async function initDb() {
   mkdir('./tmp');
 
-  const sql = sql3({
-    filename: dbname,
-  });
+  const sql = sql3({ filename: dbname });
 
   await sql.exec`DROP TABLE IF EXISTS users`;
 
@@ -49,9 +48,7 @@ const createUsers = mkPrimaryTxFn((tx, emails) => {
 async function runDemo() {
   const suffix = process.env.FORK;
   const email = (prefix) => `${prefix}${suffix}@example.com`;
-  const sql = sql3({
-    filename: dbname,
-  });
+  const sql = sql3({ filename: dbname });
   const userId = await sql.execScalar`
     INSERT INTO users (email) VALUES (${email('me')}) RETURNING id
   `;
@@ -62,27 +59,35 @@ async function runDemo() {
     sql`INSERT INTO users (email) VALUES (${email('tx1')})`,
     sql`INSERT INTO users (email) VALUES (${email('tx2')})`,
   ]);
+  const txUsers = sql.all`SELECT * FROM users WHERE email IN (${[
+    email('tx1'),
+    email('tx2'),
+  ]})`;
 
-  const ab = await createUsers(sql, [email('a-'), email('b-')]);
+  const userIds = await createUsers(sql, [email('a-'), email('b-')]);
+  const fnUsers = await sql.all`SELECT * FROM users WHERE id IN (${userIds})`;
 
-  console.log(userId);
-  console.log(user);
-
-  console.log(
-    sql.all`SELECT * FROM users WHERE email IN (${[
-      email('tx1'),
-      email('tx2'),
-    ]})`
+  assert.ok(typeof userId === 'number');
+  assert.ok(typeof user.id === 'number');
+  assert.deepStrictEqual(user.email, email('you'));
+  assert.deepStrictEqual(
+    txUsers.map((x) => x.email),
+    [email('tx1'), email('tx2')]
   );
-
-  console.log(ab);
+  assert.deepStrictEqual(
+    fnUsers.map((x) => x.email),
+    [email('a-'), email('b-')]
+  );
 
   sql.close();
 }
 
 if (cluster.isPrimary) {
   let workerCount = 2;
-  cluster.on('exit', () => {
+  cluster.on('exit', (_worker, exitCode) => {
+    if (exitCode) {
+      process.exit(exitCode);
+    }
     if (--workerCount <= 0) {
       process.exit();
     }
@@ -97,5 +102,8 @@ if (cluster.isPrimary) {
 } else {
   runDemo()
     .then(() => process.exit())
-    .catch((err) => console.error('secondary error: ', err));
+    .catch((err) => {
+      console.error(err);
+      process.exit(1);
+    });
 }

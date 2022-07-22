@@ -4,8 +4,13 @@
   "description": "A query builder, migrator, and optimizer built on top of better-sqlite3.",
   "main": "src/index.mjs",
   "scripts": {
+    "start:bench": "node scripts/benchmarks.mjs",
+    "bench:write": "hey -n 10000 -c 300 http://localhost:3000/write",
+    "bench:all": "hey -n 100000 -c 300 http://localhost:3000/all",
+    "bench:one": "hey -n 100000 -c 300 http://localhost:3000/one",
+    "bench:scalar": "hey -n 100000 -c 300 http://localhost:3000/scalar",
     "start": "node src/index.mjs",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node scripts/run-tests.mjs"
   },
   "keywords": [
     "sqlite",
@@ -19,3 +24,4 @@
     "better-sqlite3": "7.6.2"
   }
 }
+

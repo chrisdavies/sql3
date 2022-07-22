@@ -2,6 +2,8 @@
  * This is just a hacky demo of the primary fn logic. It tests the major
  * scenarios: cluster mode, thread workers, etc.
  */
+
+import * as assert from 'assert';
 import { fileURLToPath } from 'url';
 import workers from 'worker_threads';
 import cluster from 'cluster';
@@ -18,38 +20,55 @@ const sum = mkfn((a, b) => a + b);
 
 const mul = mkfn((a, b) => a * b);
 
-const log = (promise) => promise.then(console.log);
+const expect = (promise, expected) =>
+  promise.then((actual) => {
+    console.log(actual);
+    assert.equal(actual, expected);
+  });
 
 const __filename = fileURLToPath(import.meta.url);
 
 const workerSum = (a, b) =>
   primary.addWorker(
     new workers.Worker(__filename, {
-      workerData: { args: [a, b] },
+      workerData: { args: [a, b], expected: a + b },
     })
   );
 
 const runPrimary = () => {
-  log(sum(1, 1));
+  expect(sum(1, 1), 2);
   workerSum(2, 2);
-  cluster.fork();
+  const worker = cluster.fork();
+  worker.on('exit', (exitCode) => {
+    if (exitCode) {
+      process.exit(exitCode);
+    }
+  });
 };
 
-const runWorkerThread = () => {
-  log(sum(...workers.workerData.args)).then(() => process.exit());
+const runWorkerThread = async () => {
+  try {
+    await expect(sum(...workers.workerData.args), workers.workerData.expected);
+    process.exit();
+  } catch (err) {
+    console.error(err);
+    process.exit(1);
+  }
 };
 
 const runSecondary = () => {
   let count = 2;
 
-  const deref = () => {
-    if (--count <= 0) {
+  const deref = (exitCode) => {
+    if (exitCode) {
+      process.exit(exitCode);
+    } else if (--count <= 0) {
       process.exit();
     }
   };
 
   workerSum(8, 8).on('exit', deref);
-  log(mul(2, 4)).then(deref);
+  expect(mul(2, 4), 8).then(deref);
 };
 
 if (cluster.isPrimary && workers.isMainThread) {
