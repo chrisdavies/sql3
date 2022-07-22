@@ -20,6 +20,15 @@ async function initDb() {
   sql.close();
 }
 
+const createUsers = sql3.txFn((tx, emails) => {
+  return emails.map(
+    (email) =>
+      tx.execScalar`
+      INSERT INTO users (email) VALUES (${email}) RETURNING id
+    `
+  );
+});
+
 async function runDemo() {
   const suffix = process.env.FORK;
   const email = (prefix) => `${prefix}${suffix}@example.com`;
@@ -37,6 +46,8 @@ async function runDemo() {
     sql`INSERT INTO users (email) VALUES (${email('tx2')})`,
   ]);
 
+  const ab = await createUsers(sql, [email('a-'), email('b-')]);
+
   console.log(userId);
   console.log(user);
 
@@ -46,6 +57,8 @@ async function runDemo() {
       email('tx2'),
     ]})`
   );
+
+  console.log(ab);
 
   sql.close();
 }

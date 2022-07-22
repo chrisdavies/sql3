@@ -154,6 +154,11 @@ export function primaryFn(runner) {
     addWorker: pump.addWorker,
 
     /**
+     * Send a message { fn, args }.
+     */
+    send: pump.send,
+
+    /**
      * Create a function which executes on the primary thread. The args must
      * be serializable.
      *
