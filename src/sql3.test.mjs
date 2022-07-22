@@ -3,6 +3,7 @@
  */
 
 import { sql3 } from './index.mjs';
+import * as assert from 'assert';
 
 function runDemo() {
   const sql = sql3();
@@ -14,7 +15,7 @@ function runDemo() {
     VALUES (1, 'George'), (2, 'Jetson')
   )`;
   const demoWhere = (where) => {
-    console.log(sql.all`
+    return sql.all`
       SELECT *
       FROM (
         SELECT column1 "id", column2 "email" FROM (
@@ -23,7 +24,7 @@ function runDemo() {
       )
       ${where.id ? sql`WHERE id=${where.id}` : sql``}
       ${where.email ? sql`WHERE email=${where.email}` : sql``}
-    `);
+    `;
   };
   const matches = sql.all`
       SELECT *
@@ -45,16 +46,34 @@ function runDemo() {
     )
   `;
 
-  console.log(users);
-  console.log(user);
-  console.log(userId);
+  assert.deepStrictEqual(users, [{ id: 32, name: 'Mr Jetson' }]);
+  assert.deepStrictEqual(user, { id: 32, name: 'Mr Jetson' });
+  assert.equal(userId, 32);
+  const iterUsers = [];
+
   for (const row of iter) {
-    console.log(row);
+    iterUsers.push(row);
   }
-  demoWhere({ id: 2 });
-  demoWhere({ email: 'george@example.com' });
-  console.log(matches);
-  console.log(subArray);
+  assert.deepStrictEqual(iterUsers, [
+    { id: 1, name: 'George' },
+    { id: 2, name: 'Jetson' },
+  ]);
+
+  assert.deepStrictEqual(demoWhere({ id: 2 }), [
+    { id: 2, email: 'jane@example.com' },
+  ]);
+  assert.deepStrictEqual(demoWhere({ email: 'george@example.com' }), [
+    { id: 1, email: 'george@example.com' },
+  ]);
+  assert.deepStrictEqual(matches, [
+    { id: 2, email: 'hobbes@example.com' },
+    { id: 3, email: 'suzie@example.com' },
+  ]);
+  assert.deepStrictEqual(subArray, [
+    { id: 10, seq: 0 },
+    { id: 11, seq: 1 },
+    { id: 12, seq: 2 },
+  ]);
 
   sql.close();
 }
