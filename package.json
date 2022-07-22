@@ -5,6 +5,9 @@
   "main": "src/index.mjs",
   "scripts": {
     "start:bench": "node scripts/benchmarks.mjs",
+    "migrate:up": "node ./src/migrations-cli.mjs ./tmp/migrations.db up",
+    "migrate:down": "node ./src/migrations-cli.mjs ./tmp/migrations.db down",
+    "migrate:new": "node ./src/migrations-cli.mjs new",
     "bench:write": "hey -n 10000 -c 300 http://localhost:3000/write",
     "bench:all": "hey -n 100000 -c 300 http://localhost:3000/all",
     "bench:one": "hey -n 100000 -c 300 http://localhost:3000/one",
