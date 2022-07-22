@@ -3,11 +3,28 @@
  */
 
 import { sql3 } from './init.mjs';
+import fs from 'fs';
 import cluster from 'cluster';
+import { mkPrimaryTxFn } from './sql3.mjs';
+
+const dbname = './tmp/demo.db';
+
+const mkdir = (dir) => {
+  try {
+    fs.mkdirSync(dir);
+  } catch (err) {
+    if (err.code === 'EEXIST') {
+      return;
+    }
+    throw err;
+  }
+};
 
 async function initDb() {
+  mkdir('./tmp');
+
   const sql = sql3({
-    filename: 'demo.db',
+    filename: dbname,
   });
 
   await sql.exec`DROP TABLE IF EXISTS users`;
@@ -20,7 +37,7 @@ async function initDb() {
   sql.close();
 }
 
-const createUsers = sql3.txFn((tx, emails) => {
+const createUsers = mkPrimaryTxFn((tx, emails) => {
   return emails.map(
     (email) =>
       tx.execScalar`
@@ -33,7 +50,7 @@ async function runDemo() {
   const suffix = process.env.FORK;
   const email = (prefix) => `${prefix}${suffix}@example.com`;
   const sql = sql3({
-    filename: 'demo.db',
+    filename: dbname,
   });
   const userId = await sql.execScalar`
     INSERT INTO users (email) VALUES (${email('me')}) RETURNING id

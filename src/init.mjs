@@ -37,13 +37,3 @@ export const sql3 = (opts = {}) => {
   pool.set(db);
   return db;
 };
-
-sql3.txFn = (fn) => {
-  const fnstr = fn.toString();
-  return (db, ...args) => {
-    return db.primary.send({
-      fn: fnstr,
-      args: [{ filename: db.filename, tx: true }, ...args],
-    });
-  };
-};

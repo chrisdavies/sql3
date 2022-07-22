@@ -7,9 +7,24 @@ import cluster from 'cluster';
 import * as baseDb from './db.mjs';
 import { frag } from './builder.mjs';
 
+const mkPrimaryFn = (tx) => (fn) => {
+  const fnstr = fn.toString();
+  return (db, ...args) => {
+    return db.primary.send({
+      fn: fnstr,
+      args: [{ filename: db.filename, tx }, ...args],
+    });
+  };
+};
+
+const mkWriterFn = mkPrimaryFn();
+
+export const mkPrimaryTxFn = mkPrimaryFn(true);
+
 export function sql3(opts) {
   const db = baseDb.open(opts);
   const primary = opts.primary;
+  const sql = (...args) => frag(...args);
 
   const mkfn = (fn) => {
     return (strs, ...vals) => {
@@ -21,18 +36,13 @@ export function sql3(opts) {
   const mkexec = (remoteFn) => {
     return (strs, ...vals) => {
       const q = frag(strs, ...vals);
-      return remoteFn(db.name, q.query, q.args);
+      return remoteFn(sql, q.query, q.args);
     };
   };
 
-  const runTx = primary.mkfn((db, queries) => {
-    const rawDb = db.rawDb;
-    return rawDb.transaction(() => {
-      queries.forEach((q) => rawDb.prepare(q.query).run(...q.args));
-    })();
+  const runTx = mkPrimaryTxFn((tx, queries) => {
+    queries.forEach((q) => tx.rawDb.prepare(q.query).run(...q.args));
   });
-
-  const sql = (...args) => frag(...args);
 
   const syncMethods = {
     rawDb: db,
@@ -51,29 +61,20 @@ export function sql3(opts) {
   Object.assign(sql, syncMethods, {
     // Writers
     exec: mkexec(
-      primary.mkfn((db, query, args) => {
-        return db.prepare(query).run(...args);
-      })
+      mkWriterFn((db, query, args) => db.rawDb.prepare(query).run(...args))
     ),
-
     execScalar: mkexec(
-      primary.mkfn((db, query, args) => {
-        return db
+      mkWriterFn((db, query, args) =>
+        db.rawDb
           .prepare(query)
           .pluck()
-          .get(...args);
-      })
+          .get(...args)
+      )
     ),
-
     execGet: mkexec(
-      primary.mkfn((db, query, args) => {
-        return db.prepare(query).get(...args);
-      })
+      mkWriterFn((db, query, args) => db.rawDb.prepare(query).get(...args))
     ),
-
-    execTx(queries) {
-      return runTx(db.name, queries);
-    },
+    execTx: (queries) => runTx(sql, queries),
   });
 
   if (cluster.isPrimary) {

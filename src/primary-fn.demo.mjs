@@ -9,9 +9,14 @@ import { primaryFn } from './primary-fn.mjs';
 
 const primary = primaryFn((fn, args) => fn(...args));
 
-const sum = primary.mkfn((a, b) => a + b);
+const mkfn =
+  (fn) =>
+  (...args) =>
+    primary.send({ fn: fn.toString(), args });
 
-const mul = primary.mkfn((a, b) => a * b);
+const sum = mkfn((a, b) => a + b);
+
+const mul = mkfn((a, b) => a * b);
 
 const log = (promise) => promise.then(console.log);
 
