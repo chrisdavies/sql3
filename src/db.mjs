@@ -40,7 +40,9 @@ function setPragmas(db, pragmas) {
 export function open(opts = defaultOpts) {
   opts = { ...defaultOpts, ...opts };
 
-  const readonly = (cluster.isWorker || !workers.isMainThread) && opts.filename !== inMemoryFilename;
+  const readonly =
+    (cluster.isWorker || !workers.isMainThread) &&
+    opts.filename !== inMemoryFilename;
   const { cache } = opts;
   const db = new Database(opts.filename, {
     // The primary is the only writer all others delegate writes to the primary.
@@ -80,4 +82,3 @@ export function open(opts = defaultOpts) {
 
   return db;
 }
-

@@ -8,6 +8,7 @@ import fs from 'fs';
 import Database from 'better-sqlite3';
 import { cpus } from 'node:os';
 import { sql3, primaryTxFn } from '../src/index.mjs';
+import { orm } from '../src/orm.mjs';
 import path from 'path';
 
 const dbdir = '../tmp';
@@ -80,6 +81,7 @@ function getRawUpdater() {
 function startWorker() {
   console.log(`Started worker ${process.pid}`);
   const sql = sql3({ filename: dbname });
+  const db = orm(sql);
   const ids = new Array(40).fill(0).map((_, i) => i + 100);
   const rawUpdate = getRawUpdater();
 
@@ -93,6 +95,8 @@ function startWorker() {
           from users u
           where u.id IN (${ids})
         `);
+      } else if (req.url.startsWith('/orm-all')) {
+        result = JSON.stringify(db.users(ids));
       } else if (req.url.startsWith('/one')) {
         const url = new URL(req.url, 'http://example');
         const id = url.searchParams.get('id') || ids[0];
@@ -107,6 +111,10 @@ function startWorker() {
           from users u
           where u.id=${ids[0]}
         `);
+      } else if (req.url.startsWith('/orm-one')) {
+        const url = new URL(req.url, 'http://example');
+        const id = url.searchParams.get('id') || ids[0];
+        result = JSON.stringify(db.users(id));
       } else if (req.url.startsWith('/tx')) {
         result = JSON.stringify(
           await incUser(sql, Math.floor(Math.random() * numRecs))
@@ -115,7 +123,22 @@ function startWorker() {
         result = JSON.stringify(
           rawUpdate.run(Math.floor(Math.random() * numRecs))
         );
+      } else if (req.url.startsWith('/orm-write')) {
+        result = JSON.stringify(
+          await db.users.update({
+            id: Math.floor(Math.random() * numRecs),
+            num_writes: 0,
+          })
+        );
       } else if (req.url.startsWith('/write')) {
+        result = JSON.stringify(
+          await sql.exec`
+          UPDATE users
+          SET num_writes=0
+          WHERE id=${Math.floor(Math.random() * numRecs)}
+        `
+        );
+      } else if (req.url.startsWith('/inc')) {
         result = JSON.stringify(
           await sql.exec`
           UPDATE users

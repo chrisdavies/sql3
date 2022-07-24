@@ -21,16 +21,73 @@ export function raw(s) {
 }
 
 /**
+ * Escape the specified string so that it is safe to use as a table or column
+ * name in a query. This returns the string.
+ */
+export function esc(s) {
+  return '"' + s.replace(/"/g, '""') + '"';
+}
+
+/**
+ * Escape the specified string so that it is safe to use as a table or column
+ * name in a query. This returns a SQL fragment.
+ */
+export function name(s) {
+  return raw(esc(s));
+}
+
+/**
+ * Generate an insert cols + values clause from an object or array of objects.
+ */
+export function insertCols(objOrArr) {
+  const obj = Array.isArray(objOrArr) ? objOrArr[0] : objOrArr;
+  const cols = Object.keys(obj);
+  const arr = Array.isArray(objOrArr) ? objOrArr : [objOrArr];
+  const values = arr.map((o) => frag`(${cols.map((c) => frag`${o[c]}`)})`);
+  return frag`(${cols.map((col) => name(col))}) VALUES ${values}`;
+}
+
+/**
+ * Convert an object to a where clause.
+ */
+export function objToWhere(obj) {
+  return frag`WHERE ${Object.entries(obj).map(
+    ([k, v]) =>
+      frag`${name(k)} ${Array.isArray(v) ? frag`IN (${v})` : frag`=${v}`}`
+  )}`;
+}
+
+/**
+ * Generate the set columns of an update clause from an object.
+ */
+export function setCols({ id, ...obj }, whereObj) {
+  if (!whereObj && id == null) {
+    throw new Error(`Cannot perform update without an id or where clause.`);
+  }
+  whereObj = whereObj || { id };
+  const whereClause = objToWhere(whereObj);
+  return Object.entries(obj).map(
+    ([k, v]) => frag`${name(k)}=${v} ${whereClause}`
+  );
+}
+
+/**
  * If the value is truthy, build it into the query. Otherwise, this is a noop.
  */
 export function when(x) {
   return x ? x : raw('');
 }
 
+/**
+ * Determine whether or not the specified value is a SQL fragment.
+ */
 function isFragment(val) {
   return val && val.type === sqlType;
 }
 
+/**
+ * Determine whether or not the specified array is a SQL fragment.
+ */
 function isFragmentArray(arr) {
   return Array.isArray(arr) && arr[0]?.type === sqlType;
 }
